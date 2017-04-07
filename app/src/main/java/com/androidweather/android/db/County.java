@@ -20,7 +20,7 @@ public class County extends DataSupport {
     }
 
 
-    public String getContyName() {
+    public String getCountyName() {
         return countyName;
     }
     public void setCountyName(String  countyName) {

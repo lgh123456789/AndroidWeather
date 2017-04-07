@@ -117,7 +117,7 @@ public class WeatherActivity extends AppCompatActivity {
     private void showWeatherInfo(Weather weather) {
         String cityName = weather.basic.cityName;
         String updateTime = weather.basic.update.updateTime.split("")[1];
-        String degree = weather.now.tmperature + "*C";
+        String degree = weather.now.temperature + "*C";
         String weatherInfo = weather.now.more.info;
 
         titleCity.setText(cityName);
@@ -143,7 +143,7 @@ public class WeatherActivity extends AppCompatActivity {
             aqiText.setText(weather.aqi.city.aqi);
             pm25Text.setText(weather.aqi.city.pm25);
         }
-        String comfort = "舒适度" +weather.suggestion.confort.info;
+        String comfort = "舒适度" +weather.suggestion.comfort.info;
         String carWash = "洗车指数" + weather.suggestion.carWash.info;
         String sport = "运动建议" +weather.suggestion.sport.info;
         comfortText.setText(comfort);
