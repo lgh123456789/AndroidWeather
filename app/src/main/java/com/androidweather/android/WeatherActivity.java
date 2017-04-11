@@ -1,11 +1,14 @@
 package com.androidweather.android;
 
 import android.content.SharedPreferences;
+import android.graphics.Color;
+import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.v7.app.AppCompatActivity;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -15,6 +18,7 @@ import com.androidweather.android.gson.Forecast;
 import com.androidweather.android.gson.Weather;
 import com.androidweather.android.util.HttpUtil;
 import com.androidweather.android.util.Utility;
+import com.bumptech.glide.Glide;
 
 import java.io.IOException;
 
@@ -24,12 +28,15 @@ import okhttp3.Response;
 
 public class WeatherActivity extends AppCompatActivity {
 
+    private ImageView bingPicImg;
+
     private ScrollView weatherLayout;
 
     private TextView titleCity;
     private TextView titleUpdateTime;
     private TextView degreeText;
     private TextView weatherInfoText;
+
 
     private LinearLayout forecastLayout;
 
@@ -42,7 +49,20 @@ public class WeatherActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        //添加判断，如果sdk的版本号大于21，通过getWindow方法和getDiecorView方法获取decorView的实例，用SystemVisibility来改变系统的UI
+        //调用setStatusBarColor（）将状态栏设置为透明色
+        if (Build.VERSION.SDK_INT >= 21) {
+            View decorView = getWindow().getDecorView();
+            decorView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN | View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
+            getWindow().setStatusBarColor(Color.TRANSPARENT);
+        }
+
         setContentView(R.layout.activity_weather);
+
+        //获取ImageView的实例，
+        bingPicImg = (ImageView) findViewById(R.id.bing_pic_img);
+
 
         weatherLayout = (ScrollView) findViewById(R.id.weather_layout);
         titleCity = (TextView) findViewById(R.id.title_city);
@@ -59,6 +79,15 @@ public class WeatherActivity extends AppCompatActivity {
 
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
         String weatherString = prefs.getString("weather", null);
+
+        //尝试从SharePreference中读取缓存的图片，用Glide来加载，没有就调用loadBingPic方法请求今日的必应背景图
+        String bingPic = prefs.getString("bing_pic", null);
+        if (bingPic != null) {
+            Glide.with(this).load(bingPic).into(bingPicImg);
+        }else {
+            loadBingPic();
+        }
+
         if (weatherString != null) {
             //
             Weather weather = Utility.handleWeatherResponse(weatherString);
@@ -72,22 +101,12 @@ public class WeatherActivity extends AppCompatActivity {
     }
 
     /**
-     * 根据天气id请求城市天气信息
+     * 根据天气id请求城市天气信息  "&key=6cc3d11c6f074fecb2fadd065e74a715"    http://guolin.tech/api/weather?cityid=
      */
 
     public void requestWeather(final String weatherId) {
-        String weatherUrl = "http://guolin.tech/api/weather?cityid= " + weatherId + "&key=  6cc3d11c6f074fecb2fadd065e74a715 ";
+        String weatherUrl = "http://guolin.tech/api/weather?cityid=" + weatherId + "&key=6cc3d11c6f074fecb2fadd065e74a715";
         HttpUtil.sendOkHttpRequest(weatherUrl, new Callback() {
-            @Override
-            public void onFailure(Call call, IOException e) {
-                e.printStackTrace();
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        Toast.makeText(WeatherActivity.this,"获取天气信息失败",Toast.LENGTH_LONG).show();
-                    }
-                });
-            }
 
             @Override
             public void onResponse(Call call, Response response) throws IOException {
@@ -102,13 +121,57 @@ public class WeatherActivity extends AppCompatActivity {
                             editor.apply();
                             showWeatherInfo(weather);
                         }else {
-                            Toast.makeText(WeatherActivity.this, "获取天气信息失败", Toast.LENGTH_LONG).show();
+                            Toast.makeText(WeatherActivity.this, "获取天气信息失败,回应失败", Toast.LENGTH_LONG).show();
                         }
+                    }
+                });
+            }
+
+            @Override
+            public void onFailure(Call call, IOException e) {
+                e.printStackTrace();
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        Toast.makeText(WeatherActivity.this,"获取天气信息失败",Toast.LENGTH_LONG).show();
+                    }
+                });
+            }
+
+
+        });
+
+        //这样每次请求天气信息的时候同时也会刷新背景图片
+        loadBingPic();
+    }
+
+    /**
+     * 加载必应每日一图
+     */
+    private void loadBingPic() {
+        String requestBingPic = "http://guolin.tech/api/bing_pic";
+        HttpUtil.sendOkHttpRequest(requestBingPic, new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                e.printStackTrace();
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                final String bingPic = response.body().string();
+                SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(WeatherActivity.this).edit();
+                editor.putString("bing_pic", bingPic);
+                editor.apply();
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        Glide.with(WeatherActivity.this).load(bingPic).into(bingPicImg);
                     }
                 });
             }
         });
     }
+
 
     /**
      * 处理并展示Weather实体类中的数据
