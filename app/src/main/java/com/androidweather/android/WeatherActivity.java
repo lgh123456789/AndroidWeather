@@ -1,5 +1,6 @@
 package com.androidweather.android;
 
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.os.Build;
@@ -20,6 +21,7 @@ import android.widget.Toast;
 
 import com.androidweather.android.gson.Forecast;
 import com.androidweather.android.gson.Weather;
+import com.androidweather.android.service.AutoUpdateService;
 import com.androidweather.android.util.HttpUtil;
 import com.androidweather.android.util.Utility;
 import com.bumptech.glide.Glide;
@@ -222,6 +224,7 @@ public class WeatherActivity extends AppCompatActivity {
      */
 
     private void showWeatherInfo(Weather weather) {
+
         String cityName = weather.basic.cityName;
         String updateTime = weather.basic.update.updateTime.split("")[1];
         String degree = weather.now.temperature + "*C";
@@ -257,5 +260,8 @@ public class WeatherActivity extends AppCompatActivity {
         carWashText.setText(carWash);
         sportText.setText(sport);
         weatherLayout.setVisibility(View.VISIBLE);
+        Intent intent = new Intent(this, AutoUpdateService.class);
+        startService(intent);
+
     }
 }
